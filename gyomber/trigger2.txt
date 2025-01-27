@@ -1,0 +1,76 @@
+1. Constraint (Adatbázis szintű kényszer)
+Az adatbázis szintjén alkalmazunk egy check constraint-et, hogy biztosítsuk, hogy a rekordok helyesek legyenek. Itt például biztosíthatjuk, hogy a created_at oszlopban lévő dátumok a jelenlegi dátumhoz képest legfeljebb 6 hónaposak.
+
+php
+Copy
+Edit
+Schemacreate('kikuldott', function (Blueprint $table) {
+    $table-id();  Auto increment ID
+    $table-string('email');
+    $table-text('message');
+    $table-timestamps();
+
+     Félévi adat törléshez beállított constraint
+    $table-dateTime('created_at')-default(DBraw('CURRENT_TIMESTAMP'));
+});
+2. Validálás (Laravel Controller-ben)
+A validálás biztosítja, hogy a rekordok érvényesek legyenek mielőtt elmentjük őket. Mivel törlésről van szó, az érvényesítést inkább a törlés művelet előtt használjuk.
+
+php
+Copy
+Edit
+namespace AppHttpControllers;
+
+use AppModelsKikuldott;
+use IlluminateHttpRequest;
+use IlluminateSupportFacadesValidator;
+
+class KikuldottController extends Controller
+{
+    public function store(Request $request)
+    {
+         Validálás Email cím érvényessége és üzenet mező validálása
+        $validator = Validatormake($request-all(), [
+            'email' = 'requiredemail',
+            'message' = 'requiredstringmax255',
+        ]);
+
+        if ($validator-fails()) {
+            return response()-json(['errors' = $validator-errors()], 400);
+        }
+
+         Adatok mentése
+        $kikuldott = Kikuldottcreate([
+            'email' = $request-input('email'),
+            'message' = $request-input('message'),
+        ]);
+
+        return response()-json(['message' = 'Adat sikeresen mentve', 'kikuldott' = $kikuldott]);
+    }
+}
+3. Trigger (Automatikus adat törlés adatbázis szinten)
+A trigger biztosítja, hogy automatikusan töröljük azokat az adatokat, amelyek több mint 6 hónaposak. A MySQL vagy PostgreSQL adatbázisok esetén trigger-t használhatunk, hogy időszakonként töröljük az adatokat.
+
+Példa MySQL Trigger
+A MySQL trigger segítségével automatikusan törölhetjük a kiküldött adatokat, amelyek 6 hónapnál régebbiek.
+
+sql
+Copy
+Edit
+DELIMITER $$
+
+CREATE TRIGGER delete_old_kikuldott
+AFTER INSERT ON kikuldott
+FOR EACH ROW
+BEGIN
+    DELETE FROM kikuldott WHERE created_at  NOW() - INTERVAL 6 MONTH;
+END $$
+
+DELIMITER ;
+Ez a trigger biztosítja, hogy minden alkalommal, amikor egy új rekordot beszúrunk a kikuldott táblába, a rendszer automatikusan törli a 6 hónapnál régebbi adatokat.
+
+Az egész folyamat összefoglalása
+Constraint Az adatbázis szintjén biztosítjuk, hogy a kikuldott rekordok ne legyenek érvénytelenek, például érvényes email címek legyenek.
+Validálás A Laravel-ben a store() metódusban validáljuk a beérkező adatokat, hogy biztosak legyünk abban, hogy az email érvényes és az üzenet nem üres.
+Trigger Az adatbázisban létrehoztunk egy trigger-t, ami automatikusan törli azokat a rekordokat, amelyek több mint 6 hónapja lettek létrehozva.
+Ez a három technika összekapcsolása lehetővé teszi, hogy az adatbázis szintjén biztosítsuk a helyes adatokat, az alkalmazásban biztosítsuk, hogy csak érvényes adatokat dolgozzunk fel, és automatikusan töröljük a régi adatokat.
