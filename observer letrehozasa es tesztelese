@@ -119,3 +119,24 @@ php artisan migrate --env=testing
 
 7. php artisan migrate --env=testing
 8 php artisan test
+
+
+
+
+
+constraint/validate/trigger feladat:
+
+
+/constraint: migrations/kikuldott_table.php
+
+/validálás: Controllers/KikuldottController.php
+
+/trigger: migrations/felevente_torles.php
+
+
+
+Constraint: Az adatbázis migrációban biztosítod az adat integritását (NOT NULL, valid created_at).
+
+Validálás: A Laravel szintjén gondoskodsz arról, hogy csak helyes adatokat lehessen menteni a KikuldottController validációjával.
+
+Trigger: Automatikusan törli a 6 hónapnál régebbi adatokat az adatbázisból.
