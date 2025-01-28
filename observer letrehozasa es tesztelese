@@ -1,0 +1,121 @@
+1. php artisan make:test DolgozoObserverTest
+
+
+
+2. namespace Tests\Feature;
+
+use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\Dolgozo;
+use Illuminate\Validation\ValidationException;
+
+class DolgozoObserverTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_email_validation_fails_for_invalid_email()
+    {
+        $this->expectException(ValidationException::class);
+
+        // Létrehozunk egy érvénytelen email című Dolgozo modellt
+        Dolgozo::create([
+            'email' => 'invalid-email', // Érvénytelen email
+            'taj_szam' => '123456789', // Érvényes formátumú TAJ szám
+        ]);
+    }
+
+    public function test_taj_szam_validation_fails_for_invalid_format()
+    {
+        $this->expectException(ValidationException::class);
+
+        // Létrehozunk egy érvénytelen TAJ számot tartalmazó Dolgozo modellt
+        Dolgozo::create([
+            'email' => 'valid.email@example.com', // Érvényes email
+            'taj_szam' => '12345', // Hibás formátumú TAJ szám
+        ]);
+    }
+
+    public function test_unique_validation_fails_for_duplicate_email_and_taj_szam()
+    {
+        $this->expectException(ValidationException::class);
+
+        // Létrehozunk egy első érvényes Dolgozo modellt
+        Dolgozo::create([
+            'email' => 'valid.email@example.com',
+            'taj_szam' => '123456789',
+        ]);
+
+        // Újabb Dolgozo létrehozása azonos adatokkal
+        Dolgozo::create([
+            'email' => 'valid.email@example.com', // Az email már foglalt
+            'taj_szam' => '123456789', // A TAJ szám már foglalt
+        ]);
+    }
+
+    public function test_valid_dolgozo_creation_succeeds()
+    {
+        // Létrehozunk egy érvényes Dolgozo modellt
+        $dolgozo = Dolgozo::create([
+            'email' => 'valid.email@example.com',
+            'taj_szam' => '123456789',
+        ]);
+
+        // Ellenőrizzük, hogy az adatbázisban létezik
+        $this->assertDatabaseHas('dolgozo', [
+            'email' => 'valid.email@example.com',
+            'taj_szam' => '123456789',
+        ]);
+    }
+}
+
+
+3. protected static function boot()
+{
+    parent::boot();
+
+    static::observe(\App\Observers\DolgozoObserver::class);
+}
+
+
+4. .env.testing tartalma:
+env
+Másolás
+Szerkesztés
+APP_ENV=testing
+APP_DEBUG=true
+APP_KEY=base64:YOUR_APP_KEY
+
+DB_CONNECTION=sqlite
+DB_DATABASE=:memory:
+
+CACHE_DRIVER=array
+QUEUE_CONNECTION=sync
+SESSION_DRIVER=array
+
+5. phpunit.xml példa:
+xml
+Másolás
+Szerkesztés
+<php>
+    <env name="APP_ENV" value="testing"/>
+    <env name="DB_CONNECTION" value="sqlite"/>
+    <env name="DB_DATABASE" value=":memory:"/>
+</php>
+
+
+
+
+6. Frissítsd az adatbázist a tesztkörnyezetben
+Ha nem használod a RefreshDatabase trait-et, kézzel kell migrálnod az adatbázist a tesztek futtatása előtt. Például:
+
+bash
+Másolás
+Szerkesztés
+php artisan migrate --env=testing
+
+
+
+
+
+7. php artisan migrate --env=testing
+8 php artisan test
